@@ -11,7 +11,7 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/register");
 
   const isClientRoute = nextUrl.pathname.startsWith("/client");
-  const isTradesmanRoute = nextUrl.pathname.startsWith("/tradesman");
+  const isTradesmanRoute = nextUrl.pathname.startsWith("/tradesman/dashboard");
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
 
   // If not logged in and trying to access protected routes → redirect to login
@@ -19,12 +19,12 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  // If logged in and trying to access auth pages → redirect to their dashboard
+  // If logged in and trying to access auth pages → redirect to dashboard
   if (isLoggedIn && isAuthPage) {
     if (role === "CLIENT")
       return NextResponse.redirect(new URL("/client", nextUrl));
     if (role === "TRADESMAN")
-      return NextResponse.redirect(new URL("/tradesman", nextUrl));
+      return NextResponse.redirect(new URL("/tradesman/dashboard", nextUrl));
     if (role === "ADMIN")
       return NextResponse.redirect(new URL("/admin", nextUrl));
   }
@@ -48,7 +48,7 @@ export default auth((req) => {
 export const config = {
   matcher: [
     "/client/:path*",
-    "/tradesman/:path*",
+    "/tradesman/dashboard/:path*",
     "/admin/:path*",
     "/login",
     "/register",
