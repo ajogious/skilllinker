@@ -1,5 +1,8 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import authConfig from "./src/auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { nextUrl, auth: session } = req;
@@ -14,12 +17,10 @@ export default auth((req) => {
   const isTradesmanRoute = nextUrl.pathname.startsWith("/tradesman/dashboard");
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
 
-  // If not logged in and trying to access protected routes → redirect to login
   if (!isLoggedIn && (isClientRoute || isTradesmanRoute || isAdminRoute)) {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
-  // If logged in and trying to access auth pages → redirect to dashboard
   if (isLoggedIn && isAuthPage) {
     if (role === "CLIENT")
       return NextResponse.redirect(new URL("/client", nextUrl));
@@ -29,7 +30,6 @@ export default auth((req) => {
       return NextResponse.redirect(new URL("/admin", nextUrl));
   }
 
-  // Role-based access control
   if (isLoggedIn) {
     if (isClientRoute && role !== "CLIENT" && role !== "ADMIN") {
       return NextResponse.redirect(new URL("/unauthorized", nextUrl));
