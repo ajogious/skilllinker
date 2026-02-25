@@ -8,6 +8,8 @@ import Link from "next/link";
 import Navbar from "@/components/shared/Navbar";
 import StatusBadge from "@/components/shared/StatusBadge";
 import JobTimeline from "@/components/shared/JobTimeline";
+import ChatBox from "@/components/shared/ChatBox";
+import { StarDisplay } from "@/components/shared/StarRating";
 
 export default function ClientJobDetail() {
   const { id } = useParams();
@@ -57,7 +59,7 @@ export default function ClientJobDetail() {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
@@ -73,11 +75,11 @@ export default function ClientJobDetail() {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <div className="max-w-5xl mx-auto px-4 py-8 text-center">
           <p className="text-red-400">{error}</p>
           <button
             onClick={() => router.back()}
-            className="mt-4 text-sm text-indigo-400 hover:text-indigo-300"
+            className="mt-4 text-sm text-indigo-400"
           >
             ← Go back
           </button>
@@ -86,12 +88,15 @@ export default function ClientJobDetail() {
     );
   }
 
+  const showChat =
+    job?.tradesman &&
+    ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(job?.status);
+
   return (
     <div className="min-h-screen bg-slate-950">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {/* Back */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
@@ -162,25 +167,12 @@ export default function ClientJobDetail() {
                   {job.location}
                 </span>
                 {job.budget && (
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="text-emerald-400 font-semibold">
                     ₦{Number(job.budget).toLocaleString()}
                   </span>
                 )}
-                <span className="flex items-center gap-1">
-                  <svg
-                    className="w-4 h-4 text-slate-500"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  {new Date(job.createdAt).toLocaleDateString()}
+                <span className="text-slate-500 text-xs">
+                  Posted {new Date(job.createdAt).toLocaleDateString()}
                 </span>
               </div>
 
@@ -193,6 +185,52 @@ export default function ClientJobDetail() {
                 </p>
               </div>
             </div>
+
+            {/* Chat — only when tradesman is assigned */}
+            {showChat && (
+              <div>
+                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  Messages with {job.tradesman?.name}
+                </h2>
+                <ChatBox jobId={id} jobStatus={job.status} />
+              </div>
+            )}
+
+            {/* Review prompt */}
+            {job.status === "COMPLETED" && !job.review && (
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-center gap-4">
+                <div className="text-3xl">⭐</div>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-400">
+                    How was the job?
+                  </p>
+                  <p className="text-xs text-amber-400/70 mt-0.5">
+                    Leave a review to help other clients find great tradesmen
+                  </p>
+                </div>
+                <Link
+                  href={`/client/jobs/${id}/review`}
+                  className="flex-shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold transition-all"
+                >
+                  Review
+                </Link>
+              </div>
+            )}
+
+            {/* Existing review */}
+            {job.review && (
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  Your Review
+                </h3>
+                <StarDisplay rating={job.review.rating} size="md" showNumber />
+                {job.review.comment && (
+                  <p className="text-sm text-slate-400 mt-3 leading-relaxed">
+                    {job.review.comment}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Assigned tradesman */}
             {job.tradesman && (
@@ -233,71 +271,12 @@ export default function ClientJobDetail() {
                 </div>
               </div>
             )}
-
-            {/* Review (if completed) */}
-            {job.status === "COMPLETED" && !job.review && (
-              <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5 flex items-center gap-4">
-                <div className="text-2xl">⭐</div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-400">
-                    Leave a Review
-                  </p>
-                  <p className="text-xs text-amber-400/70 mt-0.5">
-                    Share your experience to help other clients
-                  </p>
-                </div>
-                <Link
-                  href={`/client/jobs/${id}/review`}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold transition-all"
-                >
-                  Review
-                </Link>
-              </div>
-            )}
-
-            {job.review && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Your Review
-                </h3>
-                <div className="flex gap-0.5 mb-2">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <svg
-                      key={s}
-                      className={`w-4 h-4 ${s <= job.review.rating ? "text-amber-400" : "text-slate-700"}`}
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                {job.review.comment && (
-                  <p className="text-sm text-slate-400">{job.review.comment}</p>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-5">
             {/* Actions */}
-            {job.status === "OPEN" && (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Actions
-                </h3>
-                <button
-                  onClick={() => handleAction("cancel")}
-                  disabled={actionLoading}
-                  className="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-sm font-medium transition-all disabled:opacity-50"
-                >
-                  {actionLoading ? "Processing..." : "Cancel Job"}
-                </button>
-              </div>
-            )}
-
-            {["ACCEPTED", "IN_PROGRESS"].includes(job.status) && (
+            {["OPEN", "ACCEPTED", "IN_PROGRESS"].includes(job.status) && (
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
                 <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                   Actions
@@ -320,9 +299,9 @@ export default function ClientJobDetail() {
               <JobTimeline status={job.status} />
             </div>
 
-            {/* Job meta */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            {/* Details */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Details
               </h3>
               <div className="space-y-2.5">

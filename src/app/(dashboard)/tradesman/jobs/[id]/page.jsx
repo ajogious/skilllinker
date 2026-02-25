@@ -8,6 +8,7 @@ import Link from "next/link";
 import Navbar from "@/components/shared/Navbar";
 import StatusBadge from "@/components/shared/StatusBadge";
 import JobTimeline from "@/components/shared/JobTimeline";
+import ChatBox from "@/components/shared/ChatBox";
 
 export default function TradesmanJobDetail() {
   const { id } = useParams();
@@ -59,12 +60,14 @@ export default function TradesmanJobDetail() {
 
   const isMyJob = job?.tradesmanId === session?.user?.id;
   const isOpenJob = job?.status === "OPEN" && !job?.tradesmanId;
+  const showChat =
+    isMyJob && ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(job?.status);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 space-y-4">
+        <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
@@ -80,7 +83,7 @@ export default function TradesmanJobDetail() {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <div className="max-w-5xl mx-auto px-4 py-8 text-center">
           <p className="text-red-400">{error}</p>
           <button
             onClick={() => router.back()}
@@ -97,7 +100,7 @@ export default function TradesmanJobDetail() {
     <div className="min-h-screen bg-slate-950">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <button
           onClick={() => router.back()}
           className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white mb-6 transition-colors"
@@ -145,7 +148,7 @@ export default function TradesmanJobDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Job header */}
+            {/* Header */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
               <div className="flex items-start justify-between gap-3 mb-4">
                 <h1 className="text-xl font-bold text-white">{job.title}</h1>
@@ -192,20 +195,28 @@ export default function TradesmanJobDetail() {
                 )}
               </div>
 
-              <div>
-                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                  Description
-                </h3>
-                <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
-                  {job.description}
-                </p>
-              </div>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                Description
+              </h3>
+              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                {job.description}
+              </p>
             </div>
+
+            {/* Chat */}
+            {showChat && (
+              <div>
+                <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  Messages with {job.client?.name}
+                </h2>
+                <ChatBox jobId={id} jobStatus={job.status} />
+              </div>
+            )}
 
             {/* Client info */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                Posted by
+                Client
               </h3>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center">
@@ -298,19 +309,15 @@ export default function TradesmanJobDetail() {
               )}
 
               {job.status === "COMPLETED" && (
-                <div className="text-center py-2">
-                  <p className="text-emerald-400 text-sm font-medium">
-                    ✅ Job Completed
-                  </p>
-                </div>
+                <p className="text-center text-emerald-400 text-sm font-medium py-2">
+                  ✅ Job Completed
+                </p>
               )}
 
-              {["CANCELLED"].includes(job.status) && (
-                <div className="text-center py-2">
-                  <p className="text-red-400 text-sm font-medium">
-                    ❌ Job Cancelled
-                  </p>
-                </div>
+              {job.status === "CANCELLED" && (
+                <p className="text-center text-red-400 text-sm font-medium py-2">
+                  ❌ Job Cancelled
+                </p>
               )}
             </div>
 
@@ -323,8 +330,8 @@ export default function TradesmanJobDetail() {
             </div>
 
             {/* Details */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
                 Details
               </h3>
               <div className="space-y-2.5">
