@@ -1,39 +1,42 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { validate, sanitize, isValidEmail } from "@/lib/validate";
 
 export async function POST(request) {
   try {
     const body = await request.json();
     const { name, email, password, role, location } = body;
 
-    // Validation
-    if (!name || !email || !password || !role) {
+    // Sanitize inputs
+    const cleanName = sanitize(name || "");
+    const cleanEmail = (email || "").trim().toLowerCase();
+    const cleanLocation = sanitize(location || "");
+
+    // Validate
+    const validationError = validate({
+      name: cleanName,
+      email: cleanEmail,
+      password,
+    });
+    if (validationError) {
       return NextResponse.json(
-        { error: "Name, email, password, and role are required" },
+        { error: validationError.error },
         { status: 400 },
       );
     }
 
     if (!["CLIENT", "TRADESMAN"].includes(role)) {
       return NextResponse.json(
-        { error: "Role must be CLIENT or TRADESMAN" },
+        { error: "Invalid role selected" },
         { status: 400 },
       );
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
-        { status: 400 },
-      );
-    }
-
-    // Check if user already exists
+    // Check duplicate email
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: cleanEmail },
     });
-
     if (existingUser) {
       return NextResponse.json(
         { error: "An account with this email already exists" },
@@ -41,28 +44,24 @@ export async function POST(request) {
       );
     }
 
-    // Hash password
+    // Hash password with cost factor 12
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: cleanName,
+        email: cleanEmail,
         password: hashedPassword,
         role,
-        location: location || null,
+        location: cleanLocation || null,
       },
     });
 
-    // If tradesman, create empty profile automatically
+    // Auto-create tradesman profile
     if (role === "TRADESMAN") {
       await prisma.tradesmanProfile.create({
-        data: {
-          userId: user.id,
-          skills: [],
-          yearsExperience: 0,
-        },
+        data: { userId: user.id, skills: [], yearsExperience: 0 },
       });
     }
 

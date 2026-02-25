@@ -1,48 +1,43 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/tradesman/browse?skill=&location=&sort=&page=
+// GET /api/tradesman/browse?skill=&location=&sort=&minRating=&verifiedOnly=&page=
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get("skill") || "";
     const location = searchParams.get("location") || "";
-    const sort = searchParams.get("sort") || "rating"; // rating | newest | experience
+    const sort = searchParams.get("sort") || "rating";
+    const minRating = parseFloat(searchParams.get("minRating") || "0");
+    const verifiedOnly = searchParams.get("verifiedOnly") === "true";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = 12;
     const skip = (page - 1) * limit;
 
-    // Build filter
     const where = {
+      ...(verifiedOnly && { isVerified: true }),
+      ...(minRating > 0 && { avgRating: { gte: minRating } }),
+      ...(skill && { skills: { has: skill } }),
       user: {
         ...(location && {
           location: { contains: location, mode: "insensitive" },
         }),
       },
-      ...(skill && {
-        skills: { has: skill },
-      }),
     };
 
-    // Build sort
     const orderBy =
       sort === "newest"
         ? { createdAt: "desc" }
         : sort === "experience"
           ? { yearsExperience: "desc" }
-          : { avgRating: "desc" }; // default: rating
+          : { avgRating: "desc" };
 
     const [tradesmen, total] = await Promise.all([
       prisma.tradesmanProfile.findMany({
         where,
         include: {
           user: {
-            select: {
-              id: true,
-              name: true,
-              location: true,
-              avatar: true,
-            },
+            select: { id: true, name: true, location: true, avatar: true },
           },
         },
         orderBy,
