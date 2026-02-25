@@ -35,16 +35,16 @@ export default function TradesmanCard({ tradesman }) {
         {/* Header */}
         <div className="flex items-start gap-3 mb-4">
           <div className="relative flex-shrink-0">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/20 flex items-center justify-center overflow-hidden">
+            <div className="relative w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/20 overflow-hidden flex-shrink-0">
               {user.avatar ? (
                 <Image
                   src={user.avatar}
                   alt={user.name}
                   fill
-                  className="w-12 h-12 object-cover"
+                  className="object-cover"
                 />
               ) : (
-                <span className="text-lg font-bold text-indigo-400">
+                <span className="text-lg font-bold text-indigo-400 flex items-center justify-center w-full h-full">
                   {user.name?.[0]?.toUpperCase()}
                 </span>
               )}

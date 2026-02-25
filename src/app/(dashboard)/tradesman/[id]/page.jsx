@@ -23,7 +23,7 @@ function StarRating({ rating, size = "md" }) {
 }
 
 export default async function TradesmanPublicProfile({ params }) {
-  const { id } = params;
+  const { id } = await params;
   const session = await auth();
 
   const profile = await prisma.tradesmanProfile.findFirst({
