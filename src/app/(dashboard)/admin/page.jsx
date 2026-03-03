@@ -8,10 +8,12 @@ import Link from "next/link";
 import Navbar from "@/components/shared/Navbar";
 import StatusBadge from "@/components/shared/StatusBadge";
 import { StarDisplay } from "@/components/shared/StarRating";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { toast } = useToast();
   const [tab, setTab] = useState("users");
   const [users, setUsers] = useState([]);
   const [jobs, setJobs] = useState([]);
@@ -55,17 +57,21 @@ export default function AdminDashboard() {
         prev.map((u) =>
           u.id === userId
             ? {
-                ...u,
-                tradesmanProfile: {
-                  ...u.tradesmanProfile,
-                  isVerified: data.isVerified,
-                },
-              }
+              ...u,
+              tradesmanProfile: {
+                ...u.tradesmanProfile,
+                isVerified: data.isVerified,
+              },
+            }
             : u,
         ),
       );
     } catch (err) {
-      alert("Failed: " + err.message);
+      toast({
+        title: "Action failed",
+        description: err.message || "Could not update verification status.",
+        variant: "destructive",
+      });
     } finally {
       setVerifyLoading((p) => ({ ...p, [userId]: false }));
     }
@@ -190,11 +196,10 @@ export default function AdminDashboard() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                tab === t.key
-                  ? "bg-indigo-500 text-white"
-                  : "text-slate-400 hover:text-white"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.key
+                ? "bg-indigo-500 text-white"
+                : "text-slate-400 hover:text-white"
+                }`}
             >
               {t.label}
             </button>
@@ -280,13 +285,12 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-5 py-4">
                           <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              user.role === "CLIENT"
-                                ? "bg-indigo-500/20 text-indigo-400"
-                                : user.role === "TRADESMAN"
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : "bg-red-500/20 text-red-400"
-                            }`}
+                            className={`text-xs font-semibold px-2 py-1 rounded-full ${user.role === "CLIENT"
+                              ? "bg-indigo-500/20 text-indigo-400"
+                              : user.role === "TRADESMAN"
+                                ? "bg-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/20 text-red-400"
+                              }`}
                           >
                             {user.role}
                           </span>
@@ -298,7 +302,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-5 py-4 hidden md:table-cell">
                           {user.role === "TRADESMAN" &&
-                          user.tradesmanProfile ? (
+                            user.tradesmanProfile ? (
                             <div className="text-xs text-slate-400">
                               <div className="flex items-center gap-1">
                                 <StarDisplay
@@ -330,11 +334,10 @@ export default function AdminDashboard() {
                                   )
                                 }
                                 disabled={verifyLoading[user.id]}
-                                className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition-all ${
-                                  user.tradesmanProfile?.isVerified
-                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
-                                    : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/20"
-                                } disabled:opacity-50`}
+                                className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition-all ${user.tradesmanProfile?.isVerified
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+                                  : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-emerald-500/10 hover:text-emerald-400 hover:border-emerald-500/20"
+                                  } disabled:opacity-50`}
                               >
                                 {verifyLoading[user.id]
                                   ? "..."

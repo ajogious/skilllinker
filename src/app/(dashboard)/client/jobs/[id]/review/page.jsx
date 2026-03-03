@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/shared/Navbar";
 import { StarPicker } from "@/components/shared/StarRating";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner, PageLoading } from "@/components/shared/LoadingSpinner";
 
 export default function ReviewPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
@@ -35,12 +37,11 @@ export default function ReviewPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!rating) {
-      setError("Please select a rating");
+      toast({ title: "Rating required", description: "Please select a star rating.", variant: "destructive" });
       return;
     }
 
     setSubmitting(true);
-    setError("");
 
     try {
       const res = await fetch("/api/reviews", {
@@ -52,24 +53,16 @@ export default function ReviewPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      toast({ title: "Review submitted", description: "Thank you for sharing your experience!", variant: "default" });
       router.push(`/client/jobs/${id}?reviewed=true`);
     } catch (err) {
-      setError(err.message || "Failed to submit review");
+      toast({ title: "Review failed", description: err.message || "Failed to submit review.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950">
-        <Navbar />
-        <div className="max-w-lg mx-auto px-4 py-8">
-          <div className="h-64 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse" />
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -121,12 +114,6 @@ export default function ReviewPage() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Star rating */}
             <div>
@@ -161,25 +148,7 @@ export default function ReviewPage() {
             >
               {submitting ? (
                 <>
-                  <svg
-                    className="animate-spin w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
+                  <LoadingSpinner size="sm" className="text-white" />
                   Submitting...
                 </>
               ) : (

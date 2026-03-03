@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,13 +6,17 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/shared/Navbar";
 import AvatarUpload from "@/components/shared/AvatarUpload";
 import SkillTagInput from "@/components/shared/SkillTag";
+import { useToast } from "@/hooks/use-toast";
+import {
+  LoadingSpinner,
+  PageLoading,
+} from "@/components/shared/LoadingSpinner";
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -36,7 +41,13 @@ export default function EditProfilePage() {
           avatar: p.user.avatar || "",
         });
       })
-      .catch(() => setError("Failed to load profile"))
+      .catch(() =>
+        toast({
+          title: "Load failed",
+          description: "Failed to load profile.",
+          variant: "destructive",
+        }),
+      )
       .finally(() => setLoading(false));
   }, []);
 
@@ -47,8 +58,6 @@ export default function EditProfilePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError("");
-    setSuccess(false);
 
     try {
       const res = await fetch("/api/tradesman/profile", {
@@ -69,30 +78,23 @@ export default function EditProfilePage() {
         throw new Error(data.error);
       }
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      toast({
+        title: "Profile saved!",
+        description: "Your changes have been saved successfully.",
+        variant: "default",
+      });
     } catch (err) {
-      setError(err.message || "Failed to save");
+      toast({
+        title: "Save failed",
+        description: err.message || "Failed to save.",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950">
-        <Navbar />
-        <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-14 bg-slate-900 border border-slate-800 rounded-xl animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -122,30 +124,6 @@ export default function EditProfilePage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Profile saved successfully!
-            </div>
-          )}
-
           {/* Avatar */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
             <h2 className="text-sm font-semibold text-white mb-4">
@@ -240,25 +218,7 @@ export default function EditProfilePage() {
           >
             {saving ? (
               <>
-                <svg
-                  className="animate-spin w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
+                <LoadingSpinner size="sm" className="text-white" />
                 Saving...
               </>
             ) : (

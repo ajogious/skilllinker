@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 function formatTime(dateStr) {
   const date = new Date(dateStr);
@@ -20,11 +22,11 @@ function formatTime(dateStr) {
 
 export default function ChatBox({ jobId, jobStatus }) {
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const pollingRef = useRef(null);
@@ -47,7 +49,7 @@ export default function ChatBox({ jobId, jobStatus }) {
           }, 100);
         }
       } catch (err) {
-        if (!silent) setError("Failed to load messages");
+        if (!silent) toast({ title: "Load error", description: "Failed to load messages.", variant: "destructive" });
       } finally {
         if (!silent) setLoading(false);
       }
@@ -69,7 +71,6 @@ export default function ChatBox({ jobId, jobStatus }) {
     const content = input.trim();
     setInput("");
     setSending(true);
-    setError("");
 
     // Optimistic UI — add message immediately
     const optimistic = {
@@ -104,7 +105,7 @@ export default function ChatBox({ jobId, jobStatus }) {
         prev.map((m) => (m.id === optimistic.id ? data.message : m)),
       );
     } catch (err) {
-      setError(err.message || "Failed to send");
+      toast({ title: "Send failed", description: err.message || "Message could not be sent.", variant: "destructive" });
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       lastCountRef.current -= 1;
       setInput(content);
@@ -135,25 +136,7 @@ export default function ChatBox({ jobId, jobStatus }) {
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <svg
-                className="animate-spin w-5 h-5 text-indigo-400 mx-auto mb-2"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <LoadingSpinner size="md" className="mx-auto mb-2" />
               <p className="text-xs text-slate-500">Loading messages...</p>
             </div>
           </div>
@@ -196,11 +179,10 @@ export default function ChatBox({ jobId, jobStatus }) {
                 >
                   {/* Avatar */}
                   <div
-                    className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${
-                      isClient
-                        ? "bg-indigo-500/20 text-indigo-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    } ${showAvatar ? "opacity-100" : "opacity-0"}`}
+                    className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold ${isClient
+                      ? "bg-indigo-500/20 text-indigo-400"
+                      : "bg-emerald-500/20 text-emerald-400"
+                      } ${showAvatar ? "opacity-100" : "opacity-0"}`}
                   >
                     {msg.sender.name?.[0]?.toUpperCase()}
                   </div>
@@ -216,11 +198,10 @@ export default function ChatBox({ jobId, jobStatus }) {
                       </span>
                     )}
                     <div
-                      className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
-                        isMe
-                          ? "bg-indigo-500 text-white rounded-br-sm"
-                          : "bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-sm"
-                      } ${msg.id?.startsWith("temp-") ? "opacity-70" : ""}`}
+                      className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${isMe
+                        ? "bg-indigo-500 text-white rounded-br-sm"
+                        : "bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-sm"
+                        } ${msg.id?.startsWith("temp-") ? "opacity-70" : ""}`}
                     >
                       {msg.content}
                     </div>
@@ -237,13 +218,6 @@ export default function ChatBox({ jobId, jobStatus }) {
           </>
         )}
       </div>
-
-      {/* Error */}
-      {error && (
-        <div className="px-4 py-2 bg-red-500/10 border-t border-red-500/20">
-          <p className="text-xs text-red-400">{error}</p>
-        </div>
-      )}
 
       {/* Input */}
       {isClosed ? (
@@ -272,25 +246,7 @@ export default function ChatBox({ jobId, jobStatus }) {
             className="w-9 h-9 rounded-xl bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 flex items-center justify-center transition-all flex-shrink-0"
           >
             {sending ? (
-              <svg
-                className="animate-spin w-4 h-4 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <LoadingSpinner size="sm" className="text-white" />
             ) : (
               <svg
                 className="w-4 h-4 text-white"

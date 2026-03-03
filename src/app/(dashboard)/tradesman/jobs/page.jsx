@@ -6,7 +6,7 @@ import Navbar from "@/components/shared/Navbar";
 import StatusBadge from "@/components/shared/StatusBadge";
 
 export default function TradesmanJobsPage() {
-  const [tab, setTab] = useState("open"); // "open" | "mine"
+  const [tab, setTab] = useState("open");
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sanitize, validate } from "@/lib/validate";
 
 // POST /api/reviews — client submits a review after job completion
 export async function POST(request) {
@@ -13,19 +14,22 @@ export async function POST(request) {
     const body = await request.json();
     const { jobId, rating, comment } = body;
 
-    if (!jobId || !rating) {
+    if (!jobId) {
       return NextResponse.json(
-        { error: "jobId and rating are required" },
+        { error: "jobId is required" },
         { status: 400 },
       );
     }
 
-    if (rating < 1 || rating > 5) {
+    const validationError = validate({ rating });
+    if (validationError) {
       return NextResponse.json(
-        { error: "Rating must be between 1 and 5" },
+        { error: validationError.error },
         { status: 400 },
       );
     }
+
+    const cleanComment = comment ? sanitize(comment) : null;
 
     // Verify job exists, is completed, belongs to this client
     const job = await prisma.job.findUnique({
@@ -75,7 +79,7 @@ export async function POST(request) {
         clientId: session.user.id,
         tradesmanId: job.tradesmanId,
         rating: parseInt(rating),
-        comment: comment?.trim() || null,
+        comment: cleanComment,
       },
     });
 

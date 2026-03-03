@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const TRANSITIONS = {
   accept: { from: ["OPEN"], to: "ACCEPTED", role: "TRADESMAN" },
-  decline: { from: ["ACCEPTED"], to: "OPEN", role: "TRADESMAN" },
+  decline: { from: ["ACCEPTED", "OPEN"], to: "OPEN", role: "TRADESMAN" },
   start: { from: ["ACCEPTED"], to: "IN_PROGRESS", role: "TRADESMAN" },
   complete: { from: ["IN_PROGRESS"], to: "COMPLETED", role: "TRADESMAN" },
   cancel: {
@@ -70,7 +70,16 @@ export async function PATCH(request, { params }) {
     }
 
     const updateData = { status: transition.to };
-    if (action === "accept") updateData.tradesmanId = session.user.id;
+    if (action === "accept") {
+      // If job was directly hired to a specific tradesman, only they can accept
+      if (job.tradesmanId && job.tradesmanId !== session.user.id) {
+        return NextResponse.json(
+          { error: "This job was assigned to a different tradesman" },
+          { status: 403 },
+        );
+      }
+      updateData.tradesmanId = session.user.id;
+    }
     if (action === "decline") updateData.tradesmanId = null;
 
     const updatedJob = await prisma.job.update({

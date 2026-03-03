@@ -9,16 +9,17 @@ import Navbar from "@/components/shared/Navbar";
 import StatusBadge from "@/components/shared/StatusBadge";
 import JobTimeline from "@/components/shared/JobTimeline";
 import ChatBox from "@/components/shared/ChatBox";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner, PageLoading } from "@/components/shared/LoadingSpinner";
 
 export default function TradesmanJobDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const fetchJob = async () => {
     try {
@@ -27,7 +28,7 @@ export default function TradesmanJobDetail() {
       if (!res.ok) throw new Error(data.error);
       setJob(data.job);
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Failed to load job", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -39,8 +40,6 @@ export default function TradesmanJobDetail() {
 
   const handleAction = async (action) => {
     setActionLoading(true);
-    setError("");
-    setSuccess("");
     try {
       const res = await fetch(`/api/jobs/${id}/status`, {
         method: "PATCH",
@@ -49,42 +48,29 @@ export default function TradesmanJobDetail() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSuccess(data.message);
+      toast({ title: "Done!", description: data.message, variant: "default" });
       await fetchJob();
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Action failed", description: err.message, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
   };
 
   const isMyJob = job?.tradesmanId === session?.user?.id;
-  const isOpenJob = job?.status === "OPEN" && !job?.tradesmanId;
+  // Accept button shows for unassigned open jobs OR jobs directly hired to this tradesman
+  const isOpenJob = job?.status === "OPEN" && (!job?.tradesmanId || job?.tradesmanId === session?.user?.id);
   const showChat =
     isMyJob && ["ACCEPTED", "IN_PROGRESS", "COMPLETED"].includes(job?.status);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950">
-        <Navbar />
-        <div className="max-w-5xl mx-auto px-4 py-8 space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="h-32 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <PageLoading />;
 
-  if (error && !job) {
+  if (!job) {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
         <div className="max-w-5xl mx-auto px-4 py-8 text-center">
-          <p className="text-red-400">{error}</p>
+          <p className="text-slate-400">Job not found or failed to load.</p>
           <button
             onClick={() => router.back()}
             className="mt-4 text-sm text-indigo-400"
@@ -120,30 +106,6 @@ export default function TradesmanJobDetail() {
           </svg>
           Back to jobs
         </button>
-
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2">
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            {success}
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main */}
@@ -247,36 +209,31 @@ export default function TradesmanJobDetail() {
               </h3>
 
               {isOpenJob && (
-                <button
-                  onClick={() => handleAction("accept")}
-                  disabled={actionLoading}
-                  className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading ? (
-                    <svg
-                      className="animate-spin w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleAction("accept")}
+                    disabled={actionLoading}
+                    className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {actionLoading ? (
+                      <LoadingSpinner size="sm" className="text-white" />
+                    ) : (
+                      "✓"
+                    )}{" "}
+                    Accept Job
+                  </button>
+
+                  {/* Decline invite — only for direct hires (job pre-assigned to me while still OPEN) */}
+                  {job?.tradesmanId === session?.user?.id && (
+                    <button
+                      onClick={() => handleAction("decline")}
+                      disabled={actionLoading}
+                      className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-medium text-sm transition-all disabled:opacity-50"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                  ) : (
-                    "✓"
-                  )}{" "}
-                  Accept Job
-                </button>
+                      Decline Invite
+                    </button>
+                  )}
+                </div>
               )}
 
               {isMyJob && job.status === "ACCEPTED" && (

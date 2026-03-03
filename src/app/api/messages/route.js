@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sanitize, validate } from "@/lib/validate";
 
 // GET /api/messages?jobId=xxx — fetch all messages for a job
 export async function GET(request) {
@@ -67,19 +68,19 @@ export async function POST(request) {
     const body = await request.json();
     const { jobId, content } = body;
 
-    if (!jobId || !content?.trim()) {
+    if (!jobId) {
+      return NextResponse.json({ error: "jobId is required" }, { status: 400 });
+    }
+
+    const validationError = validate({ message: content });
+    if (validationError) {
       return NextResponse.json(
-        { error: "jobId and content are required" },
+        { error: validationError.error },
         { status: 400 },
       );
     }
 
-    if (content.trim().length > 2000) {
-      return NextResponse.json(
-        { error: "Message too long (max 2000 characters)" },
-        { status: 400 },
-      );
-    }
+    const cleanContent = sanitize(content);
 
     // Verify access
     const job = await prisma.job.findUnique({
@@ -110,7 +111,7 @@ export async function POST(request) {
       data: {
         jobId,
         senderId: session.user.id,
-        content: content.trim(),
+        content: cleanContent,
       },
       include: {
         sender: {

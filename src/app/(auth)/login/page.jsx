@@ -4,21 +4,21 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -29,7 +29,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password. Please try again.");
+        toast({ title: "Login failed", description: "Invalid email or password. Please try again.", variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -39,12 +39,14 @@ export default function LoginPage() {
       const session = await sessionRes.json();
       const role = session?.user?.role;
 
+      toast({ title: "Welcome back!", description: "Successfully logged in.", variant: "default" });
+
       if (role === "CLIENT") router.push("/client");
       else if (role === "TRADESMAN") router.push("/tradesman");
       else if (role === "ADMIN") router.push("/admin");
       else router.push("/");
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      toast({ title: "Error", description: "Something went wrong. Please try again.", variant: "destructive" });
       setLoading(false);
     }
   };
@@ -84,25 +86,6 @@ export default function LoginPage() {
           <p className="text-slate-400 text-sm mb-8">
             Sign in to your SkillLinker account
           </p>
-
-          {error && (
-            <div className="mb-5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -146,25 +129,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="animate-spin w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
+                  <LoadingSpinner size="sm" className="text-white" />
                   Signing in...
                 </span>
               ) : (

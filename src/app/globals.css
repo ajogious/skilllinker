@@ -87,3 +87,32 @@ a {
     --chart-5: 340 75% 55%;
   }
 }
+
+/* ── Scroll Reveal Animations ─────────────────────────────── */
+.sr-fade-up,
+.sr-fade-left,
+.sr-fade-right,
+.sr-zoom-in {
+  transition: opacity 0.65s ease, transform 0.65s ease;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.sr-fade-up     { transform: translateY(40px); }
+.sr-fade-left   { transform: translateX(-50px); }
+.sr-fade-right  { transform: translateX(50px); }
+.sr-zoom-in     { transform: scale(0.88); }
+
+.sr-visible {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .sr-fade-up, .sr-fade-left, .sr-fade-right, .sr-zoom-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

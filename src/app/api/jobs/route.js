@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sanitize, sanitizeObject, validate } from "@/lib/validate";
 
 // POST /api/jobs — client creates a job
 export async function POST(request) {
@@ -11,24 +12,45 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { title, description, category, location, budget } = body;
+    const raw = sanitizeObject({
+      title: body.title || "",
+      description: body.description || "",
+      location: body.location || "",
+    });
+    const category = sanitize(body.category || "");
+    const budget = body.budget;
+    const tradesmanId = body.tradesmanId || null;
 
-    if (!title || !description || !category || !location) {
+    if (!category) {
       return NextResponse.json(
-        { error: "Title, description, category and location are required" },
+        { error: "Category is required" },
+        { status: 400 },
+      );
+    }
+
+    const validationError = validate({
+      jobTitle: raw.title,
+      jobDescription: raw.description,
+      location: raw.location,
+      budget,
+    });
+    if (validationError) {
+      return NextResponse.json(
+        { error: validationError.error },
         { status: 400 },
       );
     }
 
     const job = await prisma.job.create({
       data: {
-        title,
-        description,
+        title: raw.title,
+        description: raw.description,
         category,
-        location,
+        location: raw.location,
         budget: budget ? parseFloat(budget) : null,
         clientId: session.user.id,
         status: "OPEN",
+        ...(tradesmanId && { tradesmanId }),
       },
       include: {
         client: { select: { name: true, avatar: true } },
@@ -47,7 +69,7 @@ export async function POST(request) {
         data: matchingTradesmen.map((t) => ({
           userId: t.userId,
           jobId: job.id,
-          message: `New job in your skill area: "${title}"`,
+          message: `New job in your skill area: "${raw.title}"`,
         })),
       });
     }

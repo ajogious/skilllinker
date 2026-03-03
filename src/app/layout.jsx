@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import AuthSessionProvider from "@/components/shared/SessionProvider";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,7 +17,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${inter.className} bg-slate-950 text-white antialiased`}
       >
-        <AuthSessionProvider>{children}</AuthSessionProvider>
+        <AuthSessionProvider>
+          {children}
+          <Toaster />
+        </AuthSessionProvider>
       </body>
     </html>
   );

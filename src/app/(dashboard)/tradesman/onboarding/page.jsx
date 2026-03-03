@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import AvatarUpload from "@/components/shared/AvatarUpload";
 import SkillTagInput from "@/components/shared/SkillTag";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const [formData, setFormData] = useState({
     name: session?.user?.name || "",
@@ -28,12 +30,11 @@ export default function OnboardingPage() {
 
   const handleSubmit = async () => {
     if (formData.skills.length === 0) {
-      setError("Please add at least one skill");
+      toast({ title: "Skills required", description: "Please add at least one skill.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const res = await fetch("/api/tradesman/profile", {
@@ -54,9 +55,10 @@ export default function OnboardingPage() {
         throw new Error(data.error);
       }
 
+      toast({ title: "Profile setup complete", description: "Welcome to your dashboard!", variant: "default" });
       router.push("/tradesman");
     } catch (err) {
-      setError(err.message || "Something went wrong");
+      toast({ title: "Setup failed", description: err.message || "Something went wrong.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -106,11 +108,6 @@ export default function OnboardingPage() {
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-7">
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
 
           {/* Step 1: Basic Info */}
           {step === 1 && (
@@ -259,25 +256,7 @@ export default function OnboardingPage() {
                 >
                   {loading ? (
                     <>
-                      <svg
-                        className="animate-spin w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
+                      <LoadingSpinner size="sm" className="text-white" />
                       Saving...
                     </>
                   ) : (

@@ -3,6 +3,8 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/shared/Navbar";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 
 const CATEGORIES = [
   "Plumbing",
@@ -26,6 +28,7 @@ function NewJobForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefilledTradesman = searchParams.get("tradesman");
+  const { toast } = useToast();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -35,22 +38,19 @@ function NewJobForm() {
     budget: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
-    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.category) {
-      setError("Please select a category");
+      toast({ title: "Category required", description: "Please select a category.", variant: "destructive" });
       return;
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const res = await fetch("/api/jobs", {
@@ -59,15 +59,17 @@ function NewJobForm() {
         body: JSON.stringify({
           ...formData,
           budget: formData.budget ? parseFloat(formData.budget) : null,
+          ...(prefilledTradesman && { tradesmanId: prefilledTradesman }),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
+      toast({ title: "Job posted successfully", description: "Your job is now live.", variant: "default" });
       router.push(`/client/jobs/${data.job.id}`);
     } catch (err) {
-      setError(err.message || "Failed to post job");
+      toast({ title: "Failed to post job", description: err.message || "Please try again.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -102,12 +104,18 @@ function NewJobForm() {
         </p>
       </div>
 
+      {prefilledTradesman && (
+        <div className="mb-5 flex items-center gap-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4">
+          <svg className="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          <p className="text-sm text-indigo-300">
+            You are posting this job <span className="font-semibold text-indigo-200">directly for a specific tradesman</span>. Fill in the details below to proceed.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-5">
-        {error && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
 
         {/* Title */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -138,11 +146,10 @@ function NewJobForm() {
                 key={cat}
                 type="button"
                 onClick={() => setFormData((p) => ({ ...p, category: cat }))}
-                className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
-                  formData.category === cat
-                    ? "bg-indigo-500 text-white border-indigo-500"
-                    : "bg-slate-800 text-slate-400 hover:text-white border-slate-700 hover:border-slate-600"
-                }`}
+                className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${formData.category === cat
+                  ? "bg-indigo-500 text-white border-indigo-500"
+                  : "bg-slate-800 text-slate-400 hover:text-white border-slate-700 hover:border-slate-600"
+                  }`}
               >
                 {cat}
               </button>
@@ -267,25 +274,7 @@ function NewJobForm() {
         >
           {loading ? (
             <>
-              <svg
-                className="animate-spin w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <LoadingSpinner size="sm" className="text-white" />
               Posting Job...
             </>
           ) : (
@@ -319,7 +308,7 @@ export default function NewJobPage() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-screen">
-            <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
+            <LoadingSpinner size="lg" />
           </div>
         }
       >

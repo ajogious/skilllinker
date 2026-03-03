@@ -3,7 +3,6 @@
  * Used in all API routes for consistent server-side validation
  */
 
-// Strip HTML tags and dangerous characters to prevent XSS/injection
 export function sanitize(str) {
   if (typeof str !== "string") return "";
   return str

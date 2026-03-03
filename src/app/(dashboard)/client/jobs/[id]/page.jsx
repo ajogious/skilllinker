@@ -10,14 +10,15 @@ import StatusBadge from "@/components/shared/StatusBadge";
 import JobTimeline from "@/components/shared/JobTimeline";
 import ChatBox from "@/components/shared/ChatBox";
 import { StarDisplay } from "@/components/shared/StarRating";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ClientJobDetail() {
   const { id } = useParams();
   const router = useRouter();
+  const { toast } = useToast();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const fetchJob = async () => {
     try {
@@ -26,7 +27,7 @@ export default function ClientJobDetail() {
       if (!res.ok) throw new Error(data.error);
       setJob(data.job);
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Failed to load job", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -38,7 +39,6 @@ export default function ClientJobDetail() {
 
   const handleAction = async (action) => {
     setActionLoading(true);
-    setError("");
     try {
       const res = await fetch(`/api/jobs/${id}/status`, {
         method: "PATCH",
@@ -49,7 +49,7 @@ export default function ClientJobDetail() {
       if (!res.ok) throw new Error(data.error);
       await fetchJob();
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Action failed", description: err.message, variant: "destructive" });
     } finally {
       setActionLoading(false);
     }
@@ -71,12 +71,12 @@ export default function ClientJobDetail() {
     );
   }
 
-  if (error && !job) {
+  if (!job) {
     return (
       <div className="min-h-screen bg-slate-950">
         <Navbar />
         <div className="max-w-5xl mx-auto px-4 py-8 text-center">
-          <p className="text-red-400">{error}</p>
+          <p className="text-slate-400">Job not found or failed to load.</p>
           <button
             onClick={() => router.back()}
             className="mt-4 text-sm text-indigo-400"
@@ -116,12 +116,6 @@ export default function ClientJobDetail() {
           </svg>
           Back to jobs
         </button>
-
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content */}

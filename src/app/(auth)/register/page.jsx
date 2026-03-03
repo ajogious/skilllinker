@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { useToast } from "@/hooks/use-toast";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
-  const [step, setStep] = useState(1); // step 1 = pick role, step 2 = fill form
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
+  const [step, setStep] = useState(1);
   const [role, setRole] = useState("");
   const [formData, setFormData] = useState({
     name: "",
@@ -16,8 +20,15 @@ export default function RegisterPage() {
     confirmPassword: "",
     location: "",
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const urlRole = searchParams.get("role");
+    if (urlRole === "TRADESMAN" || urlRole === "CLIENT") {
+      setRole(urlRole);
+      setStep(2);
+    }
+  }, [searchParams]);
 
   const handleRoleSelect = (selectedRole) => {
     setRole(selectedRole);
@@ -26,20 +37,26 @@ export default function RegisterPage() {
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+      toast({
+        title: "Validation failed",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
       return;
     }
 
     if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
+      toast({
+        title: "Weak password",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -62,7 +79,11 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Registration failed");
+        toast({
+          title: "Registration failed",
+          description: data.error || "Registration failed",
+          variant: "destructive",
+        });
         setLoading(false);
         return;
       }
@@ -75,16 +96,30 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        setError("Account created but login failed. Please login manually.");
+        toast({
+          title: "Account created",
+          description: "Login failed. Please login manually.",
+          variant: "destructive",
+        });
         router.push("/login");
         return;
       }
+
+      toast({
+        title: "Account created!",
+        description: "Welcome to SkillLinker.",
+        variant: "default",
+      });
 
       // Redirect based on role
       if (role === "CLIENT") router.push("/client");
       else if (role === "TRADESMAN") router.push("/tradesman");
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -286,12 +321,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {error && (
-              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                {error}
-              </div>
-            )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -381,25 +410,7 @@ export default function RegisterPage() {
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg
-                      className="animate-spin w-4 h-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
+                    <LoadingSpinner size="sm" className="text-white" />
                     Creating account...
                   </span>
                 ) : (
@@ -421,5 +432,13 @@ export default function RegisterPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <RegisterForm />
+    </Suspense>
   );
 }
