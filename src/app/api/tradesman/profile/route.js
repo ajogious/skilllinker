@@ -83,10 +83,18 @@ export async function PUT(request) {
       },
     });
 
-    // Update tradesman profile
-    const profile = await prisma.tradesmanProfile.update({
+    // Upsert tradesman profile (create if it doesn't exist yet, update if it does)
+    const profile = await prisma.tradesmanProfile.upsert({
       where: { userId: session.user.id },
-      data: {
+      create: {
+        userId: session.user.id,
+        ...(cleanBio !== undefined && { bio: cleanBio }),
+        ...(skills !== undefined && { skills }),
+        ...(yearsExperience !== undefined && {
+          yearsExperience: parseInt(yearsExperience),
+        }),
+      },
+      update: {
         ...(cleanBio !== undefined && { bio: cleanBio }),
         ...(skills !== undefined && { skills }),
         ...(yearsExperience !== undefined && {

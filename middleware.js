@@ -14,7 +14,7 @@ export default auth((req) => {
     nextUrl.pathname.startsWith("/register");
 
   const isClientRoute = nextUrl.pathname.startsWith("/client");
-  const isTradesmanRoute = nextUrl.pathname.startsWith("/tradesman/dashboard");
+  const isTradesmanRoute = nextUrl.pathname.startsWith("/tradesman");
   const isAdminRoute = nextUrl.pathname.startsWith("/admin");
 
   if (!isLoggedIn && (isClientRoute || isTradesmanRoute || isAdminRoute)) {
@@ -48,7 +48,7 @@ export default auth((req) => {
 export const config = {
   matcher: [
     "/client/:path*",
-    "/tradesman/dashboard/:path*",
+    "/tradesman/:path*",
     "/admin/:path*",
     "/login",
     "/register",
